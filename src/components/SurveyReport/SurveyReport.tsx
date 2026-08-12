@@ -1,12 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { SurveyRecord } from '@/types';
 import { Letterhead } from '@/components/shared/Letterhead';
 import { SignatureBlock } from '@/components/shared/SignatureBlock';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { FormField } from '@/components/shared/FormField';
 import { Button } from '@/components/shared/Button';
-import { today, mkRef } from '@/lib/utils';
+import { today, mkRef, copyToClipboard } from '@/lib/utils';
+import { KP } from '@/lib/constants';
 import {
   BODY_TYPES,
   SURVEY_STATUSES,
@@ -16,7 +17,9 @@ import {
 } from '@/lib/constants';
 import { exportSurveyExcel } from '@/lib/exportExcel';
 import { exportToPDF, printDocument } from '@/lib/exportPdf';
-import { Printer, FileSpreadsheet, FileText, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Printer, FileSpreadsheet, FileText, CheckCircle2, RotateCcw, Copy, Save } from 'lucide-react';
+
+const DRAFT_KEY = 'kp_survey_draft';
 
 const blankSR = (): SurveyRecord => ({
   id: Date.now(),
@@ -99,31 +102,114 @@ const blankSR = (): SurveyRecord => ({
 
 export function SurveyReport() {
   const [f, setF] = useState<SurveyRecord>(blankSR());
+  const [sigData, setSigData] = useState<string | null>(null);
   const [ok, setOk] = useState('');
+
+  // Load initial draft from localStorage if present
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setF(parsed.record || parsed);
+        if (parsed.sigData) setSigData(parsed.sigData);
+        setOk('✔ Restored saved draft');
+        setTimeout(() => setOk(''), 3000);
+      }
+    } catch (e) {
+      console.warn('Could not restore survey draft', e);
+    }
+  }, []);
+
+  // Auto-save draft on form change or window error
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ record: f, sigData, savedAt: Date.now() }));
+    } catch (e) {
+      console.warn('Failed to auto-save draft', e);
+    }
+  }, [f, sigData]);
+
+  const saveDraftOnError = (err: any) => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ record: f, sigData, savedAt: Date.now(), errorOccurred: true }));
+      setOk('⚠️ Draft saved automatically due to an error');
+      setTimeout(() => setOk(''), 4000);
+    } catch (e) {
+      console.error('Save draft on error failed', e);
+    }
+  };
 
   const s = <K extends keyof SurveyRecord>(k: K, v: SurveyRecord[K]) =>
     setF((p) => ({ ...p, [k]: v }));
 
   const handleSave = (status: SurveyRecord['status']) => {
-    s('status', status);
-    setOk(`✔ Survey ${f.refN} updated as ${status}`);
-    setTimeout(() => setOk(''), 3000);
+    try {
+      const updated = { ...f, status };
+      setF(updated);
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ record: updated, sigData, savedAt: Date.now() }));
+      handleCopyToClipboard(updated);
+      setOk(`✔ Survey ${f.refN} saved as ${status} & copied to clipboard`);
+      setTimeout(() => setOk(''), 4000);
+    } catch (err) {
+      saveDraftOnError(err);
+    }
+  };
+
+  const handleCopyToClipboard = async (record: SurveyRecord = f) => {
+    const summary = [
+      `=== MOTOR SURVEY REPORT ===`,
+      `Ref No: ${record.refN}`,
+      `Date: ${record.date}`,
+      `Insurer: ${record.insurer || 'N/A'}`,
+      `Policy No: ${record.policyNo || 'N/A'} | Claim No: ${record.claimNo || 'N/A'}`,
+      `Insured: ${record.insuredName || 'N/A'} (Mob: ${record.insuredMobile || 'N/A'})`,
+      `Vehicle Reg No: ${record.regNo || 'N/A'} | Make/Model: ${record.makeModel || 'N/A'}`,
+      `Accident Date: ${record.accDate || 'N/A'} | Place: ${record.accPlace || 'N/A'}`,
+      `Loss Type: ${record.lossType}`,
+      `Damages: ${record.damages || 'N/A'}`,
+      `Surveyor: ${KP.name} (Lic: ${KP.lic}, Expiry: ${KP.validity})`,
+    ].join('\n');
+
+    const success = await copyToClipboard(summary);
+    if (success) {
+      setOk('📋 Recent entry copied to clipboard!');
+      setTimeout(() => setOk(''), 3000);
+    }
   };
 
   const handleExportExcel = () => {
-    exportSurveyExcel(f);
+    try {
+      exportSurveyExcel(f);
+      handleCopyToClipboard(f);
+    } catch (err) {
+      saveDraftOnError(err);
+    }
   };
 
-  const handleExportPDF = () => {
-    exportToPDF('survey-report-print-area', `Survey_${f.refN.replace(/\//g, '-')}`);
+  const handleExportPDF = async () => {
+    try {
+      await exportToPDF('survey-report-print-area', `Survey_${f.refN.replace(/\//g, '-')}`);
+      handleCopyToClipboard(f);
+    } catch (err) {
+      saveDraftOnError(err);
+    }
   };
 
   const handlePrint = () => {
-    printDocument('survey-report-print-area');
+    try {
+      printDocument('survey-report-print-area');
+    } catch (err) {
+      saveDraftOnError(err);
+    }
   };
 
   const handleNew = () => {
+    localStorage.removeItem(DRAFT_KEY);
     setF(blankSR());
+    setSigData(null);
+    setOk('✔ Form reset & draft removed');
+    setTimeout(() => setOk(''), 3000);
   };
 
   return (
@@ -163,27 +249,16 @@ export function SurveyReport() {
       {/* SECTION 3 */}
       <SectionHeader title="3. Vehicle Details" icon="🚗" />
       <div className="form-grid form-grid-3">
-        {/* a) Registered No. */}
         <FormField label="a) Registered No." val={f.regNo} set={(v) => s('regNo', v)} ph="e.g. JH-05-CB-8983" />
-        {/* b) Date of Registration */}
         <FormField label="b) Date of Registration" val={f.dateOfReg} set={(v) => s('dateOfReg', v)} ph="DD-MM-YYYY" />
-        {/* c) Chassis No. */}
         <FormField label="c) Chassis No." val={f.chassisNo} set={(v) => s('chassisNo', v)} ph="e.g. MA1TA2WR2J2B24974" />
-        {/* d) Engine No. */}
         <FormField label="d) Engine No." val={f.engineNo} set={(v) => s('engineNo', v)} ph="e.g. WRJ4B21575" />
-        {/* e) Make/Model */}
         <FormField label="e) Make / Model" val={f.makeModel} set={(v) => s('makeModel', v)} ph="e.g. Mahindra Scorpio S11 / 2018" span={2} />
-        {/* f) Type of Body */}
         <FormField label="f) Type of Body" val={f.bodyType} set={(v) => s('bodyType', v)} opts={BODY_TYPES} />
-        {/* g) Class of Vehicle */}
         <FormField label="g) Class of Vehicle" val={f.vehicleClass} set={(v) => s('vehicleClass', v)} opts={['Private Car', 'Motor Car NT', 'Commercial LMV', 'Commercial HMV', 'Two Wheeler', 'Three Wheeler', 'Bus', 'Tractor', 'Other']} />
-        {/* h) Pre-accident Condition */}
         <FormField label="h) Pre-accident Condition" val={f.preAccCond} set={(v) => s('preAccCond', v)} opts={['Reported Normal', 'Good', 'Average', 'Poor']} />
-        {/* i) Registered Laden Weight */}
         <FormField label="i) Registered Laden Weight (kg)" val={f.regLadenWt} set={(v) => s('regLadenWt', v)} ph="e.g. 2510" />
-        {/* j) Unladen Weight */}
         <FormField label="j) Unladen Weight (kg)" val={f.unladenWt} set={(v) => s('unladenWt', v)} ph="e.g. 1810" />
-        {/* Year & Colour — supplementary */}
         <FormField label="Year of Manufacture" val={f.mfgYear} set={(v) => s('mfgYear', v)} ph="e.g. 2018" />
         <FormField label="Colour" val={f.colour} set={(v) => s('colour', v)} ph="e.g. White" />
         <FormField label="Odometer Reading (km)" val={f.odometer} set={(v) => s('odometer', v)} ph="e.g. 45000" />
@@ -205,9 +280,7 @@ export function SurveyReport() {
         <FormField label="Valid Up to" val={f.permitTo} set={(v) => s('permitTo', v)} ph="DD-MM-YYYY" />
         <FormField label="National Permit Authorization" val={f.natPermitAuth} set={(v) => s('natPermitAuth', v)} />
         <FormField label="National Permit Valid Up to" val={f.natPermitValidTo} set={(v) => s('natPermitValidTo', v)} ph="DD-MM-YYYY" />
-        {/* m) Type of Permit */}
         <FormField label="m) Type of Permit" val={f.permitType} set={(v) => s('permitType', v)} opts={['Route Permit', 'National Permit', 'Special Permit', 'N/A']} />
-        {/* n) Route/Area of Operation */}
         <FormField label="n) Route / Area of Operation" val={f.routeArea} set={(v) => s('routeArea', v)} span={3} />
       </div>
 
@@ -317,14 +390,17 @@ export function SurveyReport() {
         date={f.surveyDate}
         certText={f.certText}
         sigPlace={f.sigPlace}
+        sigData={sigData}
         onCertTextChange={(v) => s('certText', v)}
         onSigPlaceChange={(v) => s('sigPlace', v)}
+        onSigDataChange={setSigData}
       />
 
       {/* ACTION BUTTONS */}
       <div className="btn-actions no-print">
-        <Button label="Save Draft" onClick={() => handleSave('Draft')} variant="muted" size="sm" />
+        <Button label="Save Draft" onClick={() => handleSave('Draft')} variant="muted" size="sm" icon={<Save size={14} />} />
         <Button label="Finalise" onClick={() => handleSave('Final')} variant="success" icon={<CheckCircle2 size={16} />} />
+        <Button label="Copy Clipboard" onClick={() => handleCopyToClipboard(f)} variant="navy" size="sm" icon={<Copy size={14} />} />
         <Button label="Export Excel" onClick={handleExportExcel} variant="gold" icon={<FileSpreadsheet size={16} />} />
         <Button label="Export PDF" onClick={handleExportPDF} variant="navy" icon={<FileText size={16} />} />
         <Button label="Print" onClick={handlePrint} variant="primary" icon={<Printer size={16} />} />

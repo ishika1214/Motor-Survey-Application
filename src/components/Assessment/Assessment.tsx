@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Part, Labour, AssessmentRecord } from '@/types';
 import { Letterhead } from '@/components/shared/Letterhead';
 import { SignatureBlock } from '@/components/shared/SignatureBlock';
@@ -8,13 +8,15 @@ import { FormField } from '@/components/shared/FormField';
 import { Button } from '@/components/shared/Button';
 import { PartsTable } from './PartsTable';
 import { LabourTable } from './LabourTable';
-import { today, mkRef, fmtN, words, pf } from '@/lib/utils';
-import { ASSESSMENT_LOSS_TYPES, VEHICLE_AGE_OPTIONS } from '@/lib/constants';
+import { today, mkRef, fmtN, words, pf, copyToClipboard } from '@/lib/utils';
+import { KP, ASSESSMENT_LOSS_TYPES, VEHICLE_AGE_OPTIONS } from '@/lib/constants';
 import { calcPart, calcLabour, computeNet, ageDepr } from '@/lib/calculations';
 import { exportAssessmentExcel } from '@/lib/exportExcel';
 import { exportToPDF, printDocument } from '@/lib/exportPdf';
 import { parseMaintenanceExcel } from '@/lib/importExcel';
-import { Printer, FileSpreadsheet, FileText, CheckCircle2, RotateCcw, Upload } from 'lucide-react';
+import { Printer, FileSpreadsheet, FileText, CheckCircle2, RotateCcw, Upload, Copy, Save } from 'lucide-react';
+
+const DRAFT_KEY = 'kp_assessment_draft';
 
 const blankPart = (id: number): Part => ({
   id,
@@ -75,45 +77,69 @@ export function Assessment() {
     'I hereby certify that I have personally inspected the above vehicle and the assessment recorded herein is true, fair and correct to the best of my professional knowledge and judgement, prepared in accordance with IRDAI / IMT guidelines and policy terms & conditions.'
   );
   const [sigPlace, setSigPlace] = useState('Jamshedpur');
+  const [sigData, setSigData] = useState<string | null>(null);
   const [ok, setOk] = useState('');
 
-  const age = pf(vehAge);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // Load initial draft from localStorage if present
+  useEffect(() => {
     try {
-      const res = await parseMaintenanceExcel(file);
-      if (res.parts.length > 0) {
-        setParts(res.parts);
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.refN) setRefN(parsed.refN);
+        if (parsed.date) setDate(parsed.date);
+        if (parsed.insurer) setIns(parsed.insurer);
+        if (parsed.insured) setIsd(parsed.insured);
+        if (parsed.claimNo) setClm(parsed.claimNo);
+        if (parsed.policyNo) setPol(parsed.policyNo);
+        if (parsed.regNo) setReg(parsed.regNo);
+        if (parsed.mm) setMM(parsed.mm);
+        if (parsed.vehAge) setAge(parsed.vehAge);
+        if (parsed.lossType) setLT(parsed.lossType);
+        if (parsed.excess) setEx(parsed.excess);
+        if (parsed.addlEx) setAx(parsed.addlEx);
+        if (parsed.salvNet) setSV(parsed.salvNet);
+        if (parsed.betterment) setBt(parsed.betterment);
+        if (parsed.towing) setTow(parsed.towing);
+        if (parsed.parts?.length) setParts(parsed.parts);
+        if (parsed.labs?.length) setLabs(parsed.labs);
+        if (parsed.stdRemarks?.length) setStdRemarks(parsed.stdRemarks);
+        if (parsed.certText) setCertText(parsed.certText);
+        if (parsed.sigPlace) setSigPlace(parsed.sigPlace);
+        if (parsed.sigData) setSigData(parsed.sigData);
+        setOk('✔ Restored saved assessment draft');
+        setTimeout(() => setOk(''), 3000);
       }
-      if (res.labs.length > 0) {
-        setLabs(res.labs);
-      }
-      setOk(`✔ Imported ${res.countParts} Parts and ${res.countLabs} Labour items from ${file.name}`);
-      setTimeout(() => setOk(''), 5000);
-    } catch (err: any) {
-      alert(`Error reading Excel file: ${err.message || 'Invalid format'}`);
-    } finally {
-      e.target.value = '';
+    } catch (e) {
+      console.warn('Could not restore assessment draft', e);
     }
-  };
+  }, []);
 
-  const setPart = (i: number, k: keyof Part, v: string) => {
-    setParts((p) => {
-      const n = [...p];
-      n[i] = { ...n[i], [k]: v };
-      return n;
-    });
-  };
+  // Auto-save draft state on changes
+  useEffect(() => {
+    try {
+      const draftObj = {
+        refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, lossType,
+        excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData, savedAt: Date.now()
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftObj));
+    } catch (e) {
+      console.warn('Failed to auto-save assessment draft', e);
+    }
+  }, [refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, lossType, excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData]);
 
-  const setLab = (i: number, k: keyof Labour, v: string) => {
-    setLabs((p) => {
-      const n = [...p];
-      n[i] = { ...n[i], [k]: v };
-      return n;
-    });
+  const saveDraftOnError = (err: any) => {
+    try {
+      const draftObj = {
+        refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, lossType,
+        excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData, savedAt: Date.now(), errorOccurred: true
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftObj));
+      setOk('⚠️ Assessment saved as draft due to an error');
+      setTimeout(() => setOk(''), 4000);
+    } catch (e) {
+      console.error('Save draft on error failed', e);
+    }
   };
 
   const pCalc = parts.map((p) => calcPart(p, vehAge, lossType));
@@ -164,24 +190,103 @@ export function Assessment() {
     net: NET,
   });
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const res = await parseMaintenanceExcel(file);
+      if (res.parts.length > 0) {
+        setParts(res.parts);
+      }
+      if (res.labs.length > 0) {
+        setLabs(res.labs);
+      }
+      setOk(`✔ Imported ${res.countParts} Parts and ${res.countLabs} Labour items from ${file.name}`);
+      setTimeout(() => setOk(''), 5000);
+    } catch (err: any) {
+      saveDraftOnError(err);
+      alert(`Error reading Excel file: ${err.message || 'Invalid format'}`);
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const setPart = (i: number, k: keyof Part, v: string) => {
+    setParts((p) => {
+      const n = [...p];
+      n[i] = { ...n[i], [k]: v };
+      return n;
+    });
+  };
+
+  const setLab = (i: number, k: keyof Labour, v: string) => {
+    setLabs((p) => {
+      const n = [...p];
+      n[i] = { ...n[i], [k]: v };
+      return n;
+    });
+  };
+
   const handleSave = () => {
-    setOk(`✔ Assessment ${refN} saved`);
-    setTimeout(() => setOk(''), 3000);
+    try {
+      handleCopyToClipboard();
+      setOk(`✔ Assessment ${refN} saved & copied to clipboard`);
+      setTimeout(() => setOk(''), 3000);
+    } catch (err) {
+      saveDraftOnError(err);
+    }
+  };
+
+  const handleCopyToClipboard = async () => {
+    const summary = [
+      `=== MOTOR INSURANCE ASSESSMENT SHEET ===`,
+      `Ref No: ${refN} | Date: ${date}`,
+      `Insurer: ${insurer || 'N/A'} | Policy No: ${policyNo || 'N/A'} | Claim No: ${claimNo || 'N/A'}`,
+      `Insured: ${insured || 'N/A'} | Reg No: ${regNo || 'N/A'} | Make/Model: ${mm || 'N/A'}`,
+      `Loss Type: ${lossType} | Vehicle Age: ${vehAge || 'N/A'}`,
+      `Parts Gross: ₹${fmtN(pGross)} | Depreciation: ₹${fmtN(pDepr)}`,
+      `Labour Gross: ₹${fmtN(lGross)}`,
+      `Policy Excess: ₹${fmtN(ex)} | Salvage: ₹${fmtN(sv)}`,
+      `NET ADMISSIBLE AMOUNT: ₹${fmtN(NET)} (${words(Math.round(NET))})`,
+      `Surveyor: ${KP.name} (Lic: ${KP.lic}, Expiry: ${KP.validity})`,
+    ].join('\n');
+
+    const success = await copyToClipboard(summary);
+    if (success) {
+      setOk('📋 Recent assessment copied to clipboard!');
+      setTimeout(() => setOk(''), 3000);
+    }
   };
 
   const handleExportExcel = () => {
-    exportAssessmentExcel(buildRecord());
+    try {
+      exportAssessmentExcel(buildRecord());
+      handleCopyToClipboard();
+    } catch (err) {
+      saveDraftOnError(err);
+    }
   };
 
-  const handleExportPDF = () => {
-    exportToPDF('assessment-print-area', `Assessment_${refN.replace(/\//g, '-')}`);
+  const handleExportPDF = async () => {
+    try {
+      await exportToPDF('assessment-print-area', `Assessment_${refN.replace(/\//g, '-')}`);
+      handleCopyToClipboard();
+    } catch (err) {
+      saveDraftOnError(err);
+    }
   };
 
   const handlePrint = () => {
-    printDocument('assessment-print-area');
+    try {
+      printDocument('assessment-print-area');
+    } catch (err) {
+      saveDraftOnError(err);
+    }
   };
 
   const handleNew = () => {
+    localStorage.removeItem(DRAFT_KEY);
     setRefN(mkRef('AS', 1));
     setDate(today());
     setIns('');
@@ -209,6 +314,9 @@ export function Assessment() {
       'I hereby certify that I have personally inspected the above vehicle and the assessment recorded herein is true, fair and correct to the best of my professional knowledge and judgement, prepared in accordance with IRDAI / IMT guidelines and policy terms & conditions.'
     );
     setSigPlace('Jamshedpur');
+    setSigData(null);
+    setOk('✔ Assessment form reset & draft removed');
+    setTimeout(() => setOk(''), 3000);
   };
 
   return (
@@ -518,13 +626,17 @@ export function Assessment() {
         date={date}
         certText={certText}
         sigPlace={sigPlace}
+        sigData={sigData}
         onCertTextChange={setCertText}
         onSigPlaceChange={setSigPlace}
+        onSigDataChange={setSigData}
       />
 
       {/* ACTION BUTTONS */}
       <div className="btn-actions no-print">
-        <Button label="Save Assessment" onClick={handleSave} variant="success" icon={<CheckCircle2 size={16} />} />
+        <Button label="Save Draft" onClick={handleSave} variant="muted" size="sm" icon={<Save size={14} />} />
+        <Button label="Finalise" onClick={handleSave} variant="success" icon={<CheckCircle2 size={16} />} />
+        <Button label="Copy Clipboard" onClick={handleCopyToClipboard} variant="navy" size="sm" icon={<Copy size={14} />} />
         <Button label="Export Excel" onClick={handleExportExcel} variant="gold" icon={<FileSpreadsheet size={16} />} />
         <Button label="Export PDF" onClick={handleExportPDF} variant="navy" icon={<FileText size={16} />} />
         <Button label="Print" onClick={handlePrint} variant="primary" icon={<Printer size={16} />} />

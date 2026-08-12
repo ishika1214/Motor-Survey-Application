@@ -4,7 +4,7 @@ import type { Material } from '@/types';
 export const KP = {
   name:     'KUMAR PANKAJ',
   lic:      'IRDA/IND/SLA-124399',
-  validity: '21-07-2026',
+  validity: '20/07/2029',
   pan:      'CPNPP8131B',
   mobile:   '7070995947',
   email:    'kumarpankajsla@outlook.com',
