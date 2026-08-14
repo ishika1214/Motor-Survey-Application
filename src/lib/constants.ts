@@ -18,20 +18,13 @@ export const KP = {
 
 // ─── IRDAI Materials (IMT GR-35) ─────────────────────────────────────────────
 export const MATS: Material[] = [
-  { label: 'Metal / Steel',      depr: 'age',   flat: null, gst: 18 },
-  { label: 'Plastic / ABS',      depr: 'flat',  flat: 50,   gst: 18 },
-  { label: 'Rubber',             depr: 'flat',  flat: 50,   gst: 18 },
-  { label: 'Glass',              depr: 'nil',   flat: 0,    gst: 18 },
-  { label: 'Fibre Glass / FRP',  depr: 'flat',  flat: 30,   gst: 18 },
-  { label: 'Tyre / Tube',        depr: 'flat',  flat: 50,   gst: 28 },
-  { label: 'Battery',            depr: 'flat',  flat: 50,   gst: 18 },
-  { label: 'Airbag',             depr: 'flat',  flat: 50,   gst: 18 },
-  { label: 'Electrical',         depr: 'age',   flat: null, gst: 18 },
-  { label: 'Interior / Fabric',  depr: 'age',   flat: null, gst: 12 },
-  { label: 'Engine Parts',       depr: 'age',   flat: null, gst: 18 },
-  { label: 'Painting',           depr: 'paint', flat: 50,   gst: 18 },
-  { label: 'Other',              depr: 'age',   flat: null, gst: 18 },
+  { label: 'A) Metal or Wooden Parts', depr: 'age',   flat: null, gst: 18 },
+  { label: 'B) Plastic or Rubber',      depr: 'flat',  flat: 50,   gst: 18 },
+  { label: 'C) Glass',                 depr: 'nil',   flat: 0,    gst: 18 },
+  { label: 'D) Fiberglass',            depr: 'flat',  flat: 30,   gst: 18 },
 ];
+
+export const COVERAGE_TYPES = ['Normal Calculation', 'Zero Depreciation'] as const;
 
 // ─── Color Palette ───────────────────────────────────────────────────────────
 export const COLORS = {

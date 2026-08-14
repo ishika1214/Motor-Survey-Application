@@ -111,7 +111,15 @@ export function PartsTable({
                       className="td-input yellow text-right"
                     />
                   </td>
-                  <td className="text-center font-bold text-blue">{getGST(p.mat)}%</td>
+                  <td className="text-center font-bold text-blue">
+                    <input
+                      type="number"
+                      value={p.gstPct !== undefined ? p.gstPct : getGST(p.mat)}
+                      onChange={(e) => setPart(i, 'gstPct', e.target.value)}
+                      className="td-input text-center font-bold text-blue"
+                      placeholder={`${getGST(p.mat)}`}
+                    />
+                  </td>
                   <td className="text-right">{c.gstAmt ? fmtN(c.gstAmt) : '—'}</td>
                   <td className="text-right font-bold">{c.total ? fmtN(c.total) : '—'}</td>
                   <td
@@ -121,7 +129,14 @@ export function PartsTable({
                       color: c.dpPct > 0 ? 'var(--red-d)' : 'var(--muted)',
                     }}
                   >
-                    {c.dpPct}%
+                    <input
+                      type="number"
+                      value={p.dpPctOverride !== undefined ? p.dpPctOverride : ''}
+                      onChange={(e) => setPart(i, 'dpPctOverride', e.target.value)}
+                      className="td-input text-center font-bold"
+                      placeholder={`${c.dpPct}`}
+                      title="Editable depreciation override %"
+                    />
                   </td>
                   <td
                     className="text-right font-bold"

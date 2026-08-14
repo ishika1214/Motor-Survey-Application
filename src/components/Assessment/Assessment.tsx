@@ -54,6 +54,8 @@ export function Assessment() {
   const [regNo, setReg] = useState('');
   const [mm, setMM] = useState('');
   const [vehAge, setAge] = useState('');
+  const [idv, setIdv] = useState('');
+  const [coverageType, setCoverage] = useState<string>('Normal Calculation');
   const [lossType, setLT] = useState('Repair Loss');
   const [excess, setEx] = useState('');
   const [addlEx, setAx] = useState('');
@@ -95,6 +97,8 @@ export function Assessment() {
         if (parsed.regNo) setReg(parsed.regNo);
         if (parsed.mm) setMM(parsed.mm);
         if (parsed.vehAge) setAge(parsed.vehAge);
+        if (parsed.idv) setIdv(parsed.idv);
+        if (parsed.coverageType) setCoverage(parsed.coverageType);
         if (parsed.lossType) setLT(parsed.lossType);
         if (parsed.excess) setEx(parsed.excess);
         if (parsed.addlEx) setAx(parsed.addlEx);
@@ -119,19 +123,19 @@ export function Assessment() {
   useEffect(() => {
     try {
       const draftObj = {
-        refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, lossType,
+        refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, idv, coverageType, lossType,
         excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData, savedAt: Date.now()
       };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draftObj));
     } catch (e) {
       console.warn('Failed to auto-save assessment draft', e);
     }
-  }, [refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, lossType, excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData]);
+  }, [refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, idv, coverageType, lossType, excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData]);
 
   const saveDraftOnError = (err: any) => {
     try {
       const draftObj = {
-        refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, lossType,
+        refN, date, insurer, insured, claimNo, policyNo, regNo, mm, vehAge, idv, coverageType, lossType,
         excess, addlEx, salvNet, betterment, towing, parts, labs, stdRemarks, certText, sigPlace, sigData, savedAt: Date.now(), errorOccurred: true
       };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draftObj));
@@ -142,7 +146,7 @@ export function Assessment() {
     }
   };
 
-  const pCalc = parts.map((p) => calcPart(p, vehAge, lossType));
+  const pCalc = parts.map((p) => calcPart(p, vehAge, lossType, coverageType));
   const lCalc = labs.map((l) => calcLabour(l, lossType));
 
   const pGross = pCalc.reduce((s, c) => s + c.total, 0);
@@ -179,6 +183,8 @@ export function Assessment() {
     regNo,
     mm,
     vehAge,
+    idv,
+    coverageType,
     lossType,
     excess,
     addlEx,
@@ -244,6 +250,7 @@ export function Assessment() {
       `Ref No: ${refN} | Date: ${date}`,
       `Insurer: ${insurer || 'N/A'} | Policy No: ${policyNo || 'N/A'} | Claim No: ${claimNo || 'N/A'}`,
       `Insured: ${insured || 'N/A'} | Reg No: ${regNo || 'N/A'} | Make/Model: ${mm || 'N/A'}`,
+      `IDV: ₹${idv || 'N/A'} | Coverage: ${coverageType}`,
       `Loss Type: ${lossType} | Vehicle Age: ${vehAge || 'N/A'}`,
       `Parts Gross: ₹${fmtN(pGross)} | Depreciation: ₹${fmtN(pDepr)}`,
       `Labour Gross: ₹${fmtN(lGross)}`,
@@ -296,6 +303,8 @@ export function Assessment() {
     setReg('');
     setMM('');
     setAge('');
+    setIdv('');
+    setCoverage('Normal Calculation');
     setLT('Repair Loss');
     setEx('');
     setAx('');
@@ -339,11 +348,19 @@ export function Assessment() {
         <FormField label="Insured Name" val={insured} set={setIsd} />
         <FormField label="Vehicle Reg No." val={regNo} set={setReg} />
         <FormField label="Make & Model" val={mm} set={setMM} />
+        <FormField label="IDV (Insured Declared Value) ₹" val={idv} set={setIdv} yellow ph="e.g. 5,50,000" />
         <FormField
           label="Vehicle Age (IRDA Schedule)"
           val={vehAge}
           set={setAge}
           opts={VEHICLE_AGE_OPTIONS}
+          yellow
+        />
+        <FormField
+          label="Coverage / Depreciation Basis"
+          val={coverageType}
+          set={setCoverage}
+          opts={['Normal Calculation', 'Zero Depreciation']}
           yellow
         />
         <FormField
@@ -358,21 +375,28 @@ export function Assessment() {
       {/* DEPRECIATION GUIDE PILLS */}
       <div className="depr-guide">
         <span className="font-bold text-navy" style={{ fontSize: '10px' }}>
-          📌 IRDAI Depr Guide:
+          📌 IRDAI Depr Guide ({coverageType}):
         </span>
-        {[
-          { lbl: 'Rubber/Plastic/Tyre/Battery/Airbag', val: '50% Flat', col: 'var(--red-d)' },
-          { lbl: 'Fibre Glass', val: '30% Flat', col: '#7B3F00' },
-          { lbl: 'Glass', val: 'NIL', col: 'var(--grn-d)' },
-          { lbl: 'Painting', val: '50% on 25% of bill', col: '#5C0080' },
-          { lbl: 'Metal/Other', val: 'Age-based →', col: '#003080' },
-          ...(vehAge ? [{ lbl: `Age (${vehAge})`, val: `${ageDepr(vehAge)}%`, col: 'var(--navy)' }] : []),
-        ].map((item) => (
-          <span key={item.lbl} className="depr-pill">
-            <span className="text-muted">{item.lbl}:</span>{' '}
-            <b style={{ color: item.col }}>{item.val}</b>
+        {coverageType === 'Zero Depreciation' ? (
+          <span className="depr-pill">
+            <span className="text-muted">Nil Depreciation Add-On Cover:</span>{' '}
+            <b style={{ color: 'var(--grn-d)' }}>0% Depreciation Applicable Across Parts</b>
           </span>
-        ))}
+        ) : (
+          [
+            { lbl: 'Rubber/Plastic/Tyre/Battery/Airbag', val: '50% Flat', col: 'var(--red-d)' },
+            { lbl: 'Fibre Glass', val: '30% Flat', col: '#7B3F00' },
+            { lbl: 'Glass', val: 'NIL', col: 'var(--grn-d)' },
+            { lbl: 'Painting', val: '50% on 25% of bill', col: '#5C0080' },
+            { lbl: 'Metal/Other', val: 'Age-based →', col: '#003080' },
+            ...(vehAge ? [{ lbl: `Age (${vehAge})`, val: `${ageDepr(vehAge)}%`, col: 'var(--navy)' }] : []),
+          ].map((item) => (
+            <span key={item.lbl} className="depr-pill">
+              <span className="text-muted">{item.lbl}:</span>{' '}
+              <b style={{ color: item.col }}>{item.val}</b>
+            </span>
+          ))
+        )}
       </div>
 
       {/* UPLOAD EXCEL BANNER */}
@@ -431,7 +455,7 @@ export function Assessment() {
       />
 
       {/* SECTION B — LABOUR */}
-      <SectionHeader title="Section B — Labour / Operations (SAC 998714 · 18% GST)" icon="🔧" />
+      <SectionHeader title="Section B — Labour / Operations (SAC 998714)" icon="🔧" />
       <LabourTable
         labs={labs}
         lCalc={lCalc}
@@ -453,7 +477,7 @@ export function Assessment() {
         <FormField label="(−) Salvage Realised ₹" val={salvNet} set={setSV} yellow />
       </div>
 
-      {/* 3-PANEL SETTLEMENT */}
+      {/* 3-PANEL SETTLEMENT — Filtered in PDF to show only active selected loss type */}
       <div className="settlement-grid">
         {[
           {
@@ -477,7 +501,7 @@ export function Assessment() {
         ].map((p) => (
           <div
             key={p.t}
-            className={`settlement-card ${p.active ? 'active' : ''}`}
+            className={`settlement-card ${p.active ? 'active' : 'inactive-loss-card'}`}
             style={{ borderColor: p.active ? p.col : undefined }}
           >
             <div className="settlement-card-head" style={{ background: p.col }}>

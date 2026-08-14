@@ -11,6 +11,8 @@ export interface Material {
 // ─── Parts & Labour ─────────────────────────────────────────────────────────
 export type RRType = 'Replace' | 'Repair' | 'Repaint' | 'Align' | 'Check';
 
+export type CoverageType = 'Normal Calculation' | 'Zero Depreciation';
+
 export interface Part {
   id: number;
   desc: string;
@@ -22,6 +24,8 @@ export interface Part {
   appRate: string;
   salvage: string;
   rr: RRType;
+  gstPct?: string;
+  dpPctOverride?: string;
 }
 
 export interface PartCalc {
@@ -46,6 +50,7 @@ export interface Labour {
   clmH?: string;
   appH?: string;
   rateH?: string;
+  gstPct?: string;
 }
 
 export interface LabourCalc {
@@ -161,6 +166,8 @@ export interface AssessmentRecord {
   regNo: string;
   mm: string;
   vehAge: string;
+  idv: string;
+  coverageType: string;
   lossType: string;
   excess: string;
   addlEx: string;

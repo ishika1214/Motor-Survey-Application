@@ -53,7 +53,7 @@ function prepareElementForPDF(original: HTMLElement): HTMLElement {
     span.style.cssText = `
       display: ${isInlineSm ? 'inline-block' : 'block'};
       width: ${isInlineSm ? '45px' : '100%'};
-      min-height: ${origEl.tagName === 'TEXTAREA' ? '48px' : '22px'};
+      min-height: ${origEl.tagName === 'TEXTAREA' ? '42px' : '22px'};
       padding: ${isTdInput ? '2px 4px' : '4px 6px'};
       font-size: ${isTdInput ? '10px' : '11px'};
       font-weight: ${isBold ? '700' : '500'};
@@ -69,6 +69,46 @@ function prepareElementForPDF(original: HTMLElement): HTMLElement {
     `;
 
     cloneEl.parentNode?.replaceChild(span, cloneEl);
+  });
+
+  // Requirement 4: Loss-Type-Specific PDF Output
+  // Hide inactive loss type calculation cards so PDF reflects ONLY selected loss type
+  const inactiveCards = clone.querySelectorAll('.settlement-card.inactive-loss-card, .settlement-card:not(.active)');
+  inactiveCards.forEach((card) => card.remove());
+
+  // Ensure active settlement card takes clean layout
+  const settlementGrid = clone.querySelector<HTMLElement>('.settlement-grid');
+  if (settlementGrid) {
+    settlementGrid.style.display = 'flex';
+    settlementGrid.style.justifyContent = 'center';
+  }
+  const activeCard = clone.querySelector<HTMLElement>('.settlement-card.active');
+  if (activeCard) {
+    activeCard.style.width = '100%';
+    activeCard.style.maxWidth = '450px';
+    activeCard.style.margin = '0 auto';
+  }
+
+  // Requirement 7: Show Only Assessed Line Items
+  // Filter out blank / unassessed rows in Parts and Labour tables
+  const tables = clone.querySelectorAll<HTMLTableElement>('.data-table');
+  tables.forEach((table) => {
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    let rowCounter = 1;
+
+    rows.forEach((row) => {
+      const text = row.textContent || '';
+      const isBlank = !text.replace(/\s|—|0\.00|0|Nos|Replace|Repair|Repaint|Align|Check/g, '').trim();
+
+      if (isBlank) {
+        row.remove();
+      } else {
+        const firstCol = row.querySelector('td:first-child');
+        if (firstCol && firstCol.classList.contains('font-bold')) {
+          firstCol.textContent = String(rowCounter++);
+        }
+      }
+    });
   });
 
   // Remove interactive non-printable controls
@@ -95,7 +135,7 @@ export async function exportToPDF(elementId: string, filename: string): Promise<
     wrapper.style.position = 'absolute';
     wrapper.style.left = '-9999px';
     wrapper.style.top = '0';
-    wrapper.style.width = '1000px';
+    wrapper.style.width = '980px';
     wrapper.style.background = '#ffffff';
     wrapper.style.padding = '24px';
     wrapper.style.boxSizing = 'border-box';
@@ -105,18 +145,19 @@ export async function exportToPDF(elementId: string, filename: string): Promise<
     document.body.appendChild(wrapper);
 
     const canvas = await html2canvas(pdfClone, {
-      scale: 2,
+      scale: 1.8,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 1000,
+      windowWidth: 980,
     });
 
     // Remove temp element immediately after canvas capture
     document.body.removeChild(wrapper);
     wrapper = null;
 
-    const imgData = canvas.toDataURL('image/png');
+    // Requirement 3: Optimize PDF size < 3 MB using JPEG quality compression
+    const imgData = canvas.toDataURL('image/jpeg', 0.85);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -136,13 +177,13 @@ export async function exportToPDF(elementId: string, filename: string): Promise<
     let heightLeft = imgHeightMm;
     let position = margin;
 
-    pdf.addImage(imgData, 'PNG', margin, position, printWidth, imgHeightMm);
+    pdf.addImage(imgData, 'JPEG', margin, position, printWidth, imgHeightMm);
     heightLeft -= pageHeight;
 
     while (heightLeft > 0) {
       position = heightLeft - imgHeightMm + margin;
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', margin, position, printWidth, imgHeightMm);
+      pdf.addImage(imgData, 'JPEG', margin, position, printWidth, imgHeightMm);
       heightLeft -= pageHeight;
     }
 

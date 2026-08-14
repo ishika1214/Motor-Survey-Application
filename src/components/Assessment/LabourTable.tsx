@@ -34,14 +34,15 @@ export function LabourTable({
           <thead>
             <tr>
               <th style={{ width: '32px' }}>#</th>
-              <th style={{ width: '220px' }}>Labour Operation</th>
+              <th style={{ width: '200px' }}>Labour Operation</th>
               <th style={{ width: '80px' }}>SAC Code</th>
-              <th style={{ width: '110px' }}>Removal &amp; Refit ₹</th>
-              <th style={{ width: '100px' }}>Repair ₹</th>
-              <th style={{ width: '110px' }}>Painting Charges ₹</th>
-              <th style={{ width: '90px' }}>Labour Amt ₹</th>
-              <th style={{ width: '80px' }}>GST 18% ₹</th>
-              <th style={{ width: '100px' }}>Total ₹</th>
+              <th style={{ width: '100px' }}>Removal &amp; Refit ₹</th>
+              <th style={{ width: '90px' }}>Repair ₹</th>
+              <th style={{ width: '100px' }}>Painting Charges ₹</th>
+              <th style={{ width: '85px' }}>Labour Amt ₹</th>
+              <th style={{ width: '55px' }}>GST%</th>
+              <th style={{ width: '85px' }}>GST Amt ₹</th>
+              <th style={{ width: '95px' }}>Total ₹</th>
               <th style={{ width: '32px' }}>✕</th>
             </tr>
           </thead>
@@ -102,6 +103,15 @@ export function LabourTable({
                     />
                   </td>
                   <td className="text-right font-bold">{c.base ? fmtN(c.base) : '—'}</td>
+                  <td className="text-center font-bold text-blue">
+                    <input
+                      type="number"
+                      value={l.gstPct !== undefined ? l.gstPct : '18'}
+                      onChange={(e) => setLab(i, 'gstPct', e.target.value)}
+                      className="td-input text-center font-bold text-blue"
+                      placeholder="18"
+                    />
+                  </td>
                   <td className="text-right">{c.gst ? fmtN(c.gst) : '—'}</td>
                   <td className="text-right font-bold text-navy" style={{ background: '#E3F2FD' }}>
                     {c.total ? fmtN(c.total) : '—'}
@@ -126,6 +136,7 @@ export function LabourTable({
                 LABOUR TOTALS →
               </td>
               <td className="text-right font-bold">{fmtN(lBase)}</td>
+              <td></td>
               <td className="text-right font-bold">{fmtN(lGst)}</td>
               <td className="text-right font-bold">{fmtN(lGross)}</td>
               <td></td>

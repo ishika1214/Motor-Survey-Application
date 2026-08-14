@@ -98,7 +98,7 @@ export async function exportAssessmentExcel(a: AssessmentRecord): Promise<void> 
   const XLSX = await getXLSX();
   const wb = XLSX.utils.book_new();
 
-  const pCalc = a.parts.map((p) => calcPart(p, a.vehAge, a.lossType));
+  const pCalc = a.parts.map((p) => calcPart(p, a.vehAge, a.lossType, a.coverageType));
   const lCalc = a.labs.map((l) => calcLabour(l, a.lossType));
 
   const pGross = pCalc.reduce((s, c) => s + c.total, 0);
@@ -134,13 +134,14 @@ export async function exportAssessmentExcel(a: AssessmentRecord): Promise<void> 
     ['Assessment Ref No.', a.refN, 'Date', a.date, 'Loss Type', a.lossType],
     ['Insurance Company', a.insurer, 'Insured Name', a.insured, 'Vehicle Age', a.vehAge],
     ['Claim No.', a.claimNo, 'Policy No.', a.policyNo, 'Reg No. / Model', `${a.regNo} / ${a.mm}`],
+    ['IDV (Insured Declared Value)', a.idv || 'N/A', 'Coverage Basis', a.coverageType || 'Normal Calculation'],
     [''],
     ['2. SECTION A: PARTS ASSESSMENT'],
     ['#', 'Part Description', 'Material', 'Qty', 'Unit', 'OEM Rate (₹)', 'GST%', 'GST Amt (₹)', 'Total+GST (₹)', 'Depr%', 'Depr Amt (₹)', 'Net/Depr (₹)', 'Salvage (₹)', 'Admissible (₹)', 'R/R'],
     ...a.parts
       .filter((p) => p.desc || p.oemRate || p.appRate)
       .map((p, i) => {
-        const c = calcPart(p, a.vehAge, a.lossType);
+        const c = calcPart(p, a.vehAge, a.lossType, a.coverageType);
         return [
           i + 1,
           p.desc,
@@ -148,7 +149,7 @@ export async function exportAssessmentExcel(a: AssessmentRecord): Promise<void> 
           p.qty,
           p.unit,
           parseFloat(p.oemRate) || parseFloat(p.appRate) || 0,
-          getGST(p.mat),
+          p.gstPct ? parseFloat(p.gstPct) : getGST(p.mat),
           c.gstAmt,
           c.total,
           c.dpPct,
