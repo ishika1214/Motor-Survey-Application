@@ -111,6 +111,15 @@ function prepareElementForPDF(original: HTMLElement): HTMLElement {
     });
   });
 
+  // Prevent section break distortions across pages
+  const pageBreakElements = clone.querySelectorAll<HTMLElement>(
+    '.section-header, .sig-block, .settlement-card, .summary-table, .gst-panel, .form-grid, .data-table, .deductions-grid, .remarks-box'
+  );
+  pageBreakElements.forEach((el) => {
+    el.style.breakInside = 'avoid';
+    el.style.pageBreakInside = 'avoid';
+  });
+
   // Remove interactive non-printable controls
   const noPrints = clone.querySelectorAll('.no-print, .btn-actions, .del-btn');
   noPrints.forEach((el) => el.remove());
@@ -135,7 +144,7 @@ export async function exportToPDF(elementId: string, filename: string): Promise<
     wrapper.style.position = 'absolute';
     wrapper.style.left = '-9999px';
     wrapper.style.top = '0';
-    wrapper.style.width = '980px';
+    wrapper.style.width = '960px';
     wrapper.style.background = '#ffffff';
     wrapper.style.padding = '24px';
     wrapper.style.boxSizing = 'border-box';
@@ -149,15 +158,13 @@ export async function exportToPDF(elementId: string, filename: string): Promise<
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 980,
+      windowWidth: 960,
     });
 
     // Remove temp element immediately after canvas capture
     document.body.removeChild(wrapper);
     wrapper = null;
 
-    // Requirement 3: Optimize PDF size < 3 MB using JPEG quality compression
-    const imgData = canvas.toDataURL('image/jpeg', 0.85);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -166,25 +173,50 @@ export async function exportToPDF(elementId: string, filename: string): Promise<
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-
     const margin = 8;
     const printWidth = pdfWidth - margin * 2;
-    const imgHeightMm = (imgHeight * printWidth) / imgWidth;
-    const pageHeight = pdfHeight - margin * 2;
+    const pageHeightMm = pdfHeight - margin * 2;
 
-    let heightLeft = imgHeightMm;
-    let position = margin;
+    // Slice canvas into exact page-height chunks
+    const pxPageHeight = Math.floor((canvas.width * pageHeightMm) / printWidth);
+    const pageCanvas = document.createElement('canvas');
+    const pageCtx = pageCanvas.getContext('2d');
 
-    pdf.addImage(imgData, 'JPEG', margin, position, printWidth, imgHeightMm);
-    heightLeft -= pageHeight;
+    let renderedHeight = 0;
+    let pageNum = 0;
 
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeightMm + margin;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', margin, position, printWidth, imgHeightMm);
-      heightLeft -= pageHeight;
+    while (renderedHeight < canvas.height) {
+      if (pageNum > 0) {
+        pdf.addPage();
+      }
+
+      const sliceHeight = Math.min(pxPageHeight, canvas.height - renderedHeight);
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceHeight;
+
+      if (pageCtx) {
+        pageCtx.fillStyle = '#ffffff';
+        pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        pageCtx.drawImage(
+          canvas,
+          0,
+          renderedHeight,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          canvas.width,
+          sliceHeight
+        );
+      }
+
+      const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.88);
+      const pageImgMmHeight = (sliceHeight * printWidth) / canvas.width;
+
+      pdf.addImage(pageImgData, 'JPEG', margin, margin, printWidth, pageImgMmHeight);
+
+      renderedHeight += sliceHeight;
+      pageNum++;
     }
 
     pdf.save(`${filename}.pdf`);
