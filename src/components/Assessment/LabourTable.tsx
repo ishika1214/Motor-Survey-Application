@@ -77,7 +77,6 @@ export function LabourTable({
                   </td>
                   <td style={{ background: 'var(--gold-l)' }}>
                     <input
-                      type="number"
                       value={l.removalRefit}
                       onChange={(e) => setLab(i, 'removalRefit', e.target.value)}
                       className="td-input yellow text-right"
@@ -86,7 +85,6 @@ export function LabourTable({
                   </td>
                   <td style={{ background: 'var(--gold-l)' }}>
                     <input
-                      type="number"
                       value={l.repair}
                       onChange={(e) => setLab(i, 'repair', e.target.value)}
                       className="td-input yellow text-right"
@@ -95,7 +93,6 @@ export function LabourTable({
                   </td>
                   <td style={{ background: 'var(--gold-l)' }}>
                     <input
-                      type="number"
                       value={l.painting}
                       onChange={(e) => setLab(i, 'painting', e.target.value)}
                       className="td-input yellow text-right"
@@ -105,7 +102,6 @@ export function LabourTable({
                   <td className="text-right font-bold">{c.base ? fmtN(c.base) : '—'}</td>
                   <td className="text-center font-bold text-blue">
                     <input
-                      type="number"
                       value={l.gstPct !== undefined ? l.gstPct : '18'}
                       onChange={(e) => setLab(i, 'gstPct', e.target.value)}
                       className="td-input text-center font-bold text-blue"

@@ -40,8 +40,13 @@ export function words(num: number): string {
 }
 
 // ─── Parse float safely ───────────────────────────────────────────────────────
-export function pf(v: string | number): number {
-  return parseFloat(String(v)) || 0;
+export function pf(v: string | number | undefined | null): number {
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
+  if (!v) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+  const cleaned = s.replace(/[^0-9.-]/g, '');
+  return parseFloat(cleaned) || 0;
 }
 
 // ─── Copy text to clipboard ──────────────────────────────────────────────────

@@ -90,7 +90,6 @@ export function PartsTable({
                   </td>
                   <td>
                     <input
-                      type="number"
                       value={p.qty}
                       onChange={(e) => setPart(i, 'qty', e.target.value)}
                       className="td-input text-center"
@@ -105,15 +104,17 @@ export function PartsTable({
                   </td>
                   <td style={{ background: 'var(--gold-l)' }}>
                     <input
-                      type="number"
-                      value={p.oemRate || p.appRate}
-                      onChange={(e) => setPart(i, 'oemRate', e.target.value)}
+                      value={p.oemRate !== undefined && p.oemRate !== '' ? p.oemRate : p.appRate}
+                      onChange={(e) => {
+                        setPart(i, 'oemRate', e.target.value);
+                        setPart(i, 'appRate', e.target.value);
+                      }}
                       className="td-input yellow text-right"
+                      placeholder="0.00"
                     />
                   </td>
                   <td className="text-center font-bold text-blue">
                     <input
-                      type="number"
                       value={p.gstPct !== undefined ? p.gstPct : getGST(p.mat)}
                       onChange={(e) => setPart(i, 'gstPct', e.target.value)}
                       className="td-input text-center font-bold text-blue"
@@ -130,7 +131,6 @@ export function PartsTable({
                     }}
                   >
                     <input
-                      type="number"
                       value={p.dpPctOverride !== undefined ? p.dpPctOverride : ''}
                       onChange={(e) => setPart(i, 'dpPctOverride', e.target.value)}
                       className="td-input text-center font-bold"
@@ -152,10 +152,10 @@ export function PartsTable({
                   </td>
                   <td style={{ background: 'var(--gold-l)' }}>
                     <input
-                      type="number"
                       value={p.salvage}
                       onChange={(e) => setPart(i, 'salvage', e.target.value)}
                       className="td-input yellow text-right"
+                      placeholder="0.00"
                     />
                   </td>
                   <td className="text-center">

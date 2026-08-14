@@ -1,5 +1,6 @@
 import { MATS } from '@/lib/constants';
 import type { Part, PartCalc, Labour, LabourCalc } from '@/types';
+import { pf } from '@/lib/utils';
 
 // ─── Age-based Depreciation (IRDAI IMT GR-35) ────────────────────────────────
 // ─── Age-based Depreciation (IRDAI Motor Depreciation Schedule) ──────────────
@@ -80,11 +81,11 @@ export function calcPart(
   lossType: string,
   coverageType: string = 'Normal Calculation'
 ): PartCalc {
-  const qty   = parseFloat(p.qty)     || 0;
-  const rate  = parseFloat(p.oemRate) || parseFloat(p.appRate) || 0;
+  const qty   = pf(p.qty) || 1;
+  const rate  = pf(p.oemRate) || pf(p.appRate) || 0;
   
   const gst   = p.gstPct !== undefined && p.gstPct !== null && p.gstPct.trim() !== ''
-    ? (parseFloat(p.gstPct) || 0)
+    ? pf(p.gstPct)
     : getGST(p.mat);
 
   const base  = qty * rate;
@@ -98,7 +99,7 @@ export function calcPart(
   const dpPct   = isPainting ? 12.5 : dp;
 
   const netD   = Math.max(0, total - deprAmt);
-  const salv   = parseFloat(p.salvage) || 0;
+  const salv   = pf(p.salvage);
   const netS   = Math.max(0, netD - salv);
   const adm    = lossType === 'Net on Salvage Basis' ? netS : netD;
 
@@ -107,15 +108,15 @@ export function calcPart(
 
 // ─── Calculate a Single Labour Row ───────────────────────────────────────────
 export function calcLabour(l: Labour, lossType: string): LabourCalc {
-  const rr    = parseFloat(l.removalRefit || '') || 0;
-  const rep   = parseFloat(l.repair || '')       || 0;
-  const paint = parseFloat(l.painting || '')     || 0;
+  const rr    = pf(l.removalRefit);
+  const rep   = pf(l.repair);
+  const paint = pf(l.painting);
 
-  const legacyBase = (parseFloat(l.appH || '') || 0) * (parseFloat(l.rateH || '') || 0);
+  const legacyBase = pf(l.appH) * pf(l.rateH);
   const base = (rr + rep + paint) > 0 ? (rr + rep + paint) : legacyBase;
 
   const gstRate = l.gstPct !== undefined && l.gstPct !== null && l.gstPct.trim() !== ''
-    ? (parseFloat(l.gstPct) || 0)
+    ? pf(l.gstPct)
     : 18;
 
   const gst   = base * gstRate / 100;

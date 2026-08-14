@@ -414,7 +414,7 @@ export function Assessment() {
               Upload Maintenance &amp; Repair Excel Sheet
             </div>
             <div className="text-muted" style={{ fontSize: '11px', marginTop: '2px' }}>
-              Import Part &amp; Labour records directly from Excel (.xlsx, .xls, .csv). Populates <b>Part/Component Name</b> and <b>HSN/SAC Code</b> into Section A &amp; B tables, leaving rate/charge columns empty for manual entry.
+              Import Part &amp; Labour records directly from Excel (.xlsx, .xls, .csv). Populates <b>Part/Component Name</b>, <b>Part Rate</b>, and <b>GST%</b> into Section A &amp; B tables automatically.
             </div>
           </div>
         </div>
