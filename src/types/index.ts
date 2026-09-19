@@ -112,6 +112,7 @@ export interface SurveyRecord {
   taxReceiptNo: string;
   taxPaidUpTo: string;
   // Section 4 – Driver
+  vehicleState?: 'Driving' | 'Parked';
   driverName: string;
   dlNo: string;
   dlIssueDate: string;

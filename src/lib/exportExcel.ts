@@ -26,7 +26,7 @@ export async function exportSurveyExcel(survey: SurveyRecord): Promise<void> {
     ['Private & Confidential — Issued without prejudice'],
     [''],
     ['1. POLICY & CLAIM REFERENCE'],
-    ['Survey Ref No.', survey.refN, 'Date of Survey', survey.date, 'Status', survey.status],
+    ['Survey Ref No.', survey.refN, 'Report Date', survey.date, 'Date of Survey', survey.surveyDate, 'Status', survey.status],
     ['Insurance Company', survey.insurer, 'Policy No.', survey.policyNo, 'Claim No.', survey.claimNo],
     [''],
     ['2. INSURED DETAILS'],

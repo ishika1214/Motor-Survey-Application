@@ -30,10 +30,14 @@ function prepareElementForPDF(original: HTMLElement): HTMLElement {
     const val = origEl.value || '';
     const span = document.createElement('div');
 
-    const isYellow = origEl.classList.contains('yellow');
+    const isInlineSm = origEl.classList.contains('inline-input-sm');
+    const isInlineInput = origEl.classList.contains('inline-input');
+    const isTdInput = origEl.classList.contains('td-input') || origEl.classList.contains('td-select');
+
+    const isYellow = origEl.classList.contains('yellow') || origEl.style.backgroundColor?.includes('gold') || origEl.style.background?.includes('gold');
     const isCenter = origEl.classList.contains('text-center');
-    const isRight = origEl.classList.contains('text-right');
-    const isBold = origEl.classList.contains('font-bold') || origEl.classList.contains('lh-ref-input');
+    const isRight = origEl.classList.contains('text-right') || isInlineInput;
+    const isBold = origEl.classList.contains('font-bold') || origEl.classList.contains('lh-ref-input') || origEl.style.fontWeight === '700' || origEl.style.fontWeight === 'bold';
 
     const bg = isYellow ? '#FFF8E6' : '#FFFFFF';
     const borderColor = isYellow ? '#D97706' : '#B0BEC5';
@@ -47,12 +51,29 @@ function prepareElementForPDF(original: HTMLElement): HTMLElement {
 
     span.textContent = textContent || ' '; // space ensures empty field height retention
 
-    const isInlineSm = origEl.classList.contains('inline-input-sm');
-    const isTdInput = origEl.classList.contains('td-input') || origEl.classList.contains('td-select');
+    let displayStyle = 'block';
+    let widthStyle = '100%';
+    let minWidthStyle = 'auto';
+    let maxWidthStyle = 'none';
+
+    if (isInlineSm) {
+      displayStyle = 'inline-block';
+      widthStyle = '45px';
+      minWidthStyle = '45px';
+      maxWidthStyle = '45px';
+    } else if (isInlineInput) {
+      displayStyle = 'inline-block';
+      widthStyle = '140px';
+      minWidthStyle = '140px';
+      maxWidthStyle = '140px';
+    }
 
     span.style.cssText = `
-      display: ${isInlineSm ? 'inline-block' : 'block'};
-      width: ${isInlineSm ? '45px' : '100%'};
+      display: ${displayStyle};
+      width: ${widthStyle};
+      min-width: ${minWidthStyle};
+      max-width: ${maxWidthStyle};
+      flex-shrink: 0;
       min-height: ${origEl.tagName === 'TEXTAREA' ? '42px' : '22px'};
       padding: ${isTdInput ? '2px 4px' : '4px 6px'};
       font-size: ${isTdInput ? '10px' : '11px'};

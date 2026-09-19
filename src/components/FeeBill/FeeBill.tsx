@@ -213,7 +213,7 @@ export function FeeBill() {
       <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', marginBottom: '16px' }}>
         <div className="fee-row">
           <div className="fee-row-label">
-            <div>Professional Survey Fees ₹ ★</div>
+            <div className="fee-row-title">Professional Survey Fees ₹ ★</div>
             <div className="fee-row-detail">Survey / Loss Assessment fee as per scale</div>
           </div>
           <input
@@ -228,7 +228,7 @@ export function FeeBill() {
 
         <div className="fee-row">
           <div className="fee-row-label">
-            <div>Conveyance Charges ₹</div>
+            <div className="fee-row-title">Conveyance Charges ₹</div>
             <div className="fee-row-detail">Local travel for inspection</div>
           </div>
           <input
@@ -241,7 +241,7 @@ export function FeeBill() {
 
         <div className="fee-row">
           <div className="fee-row-label">
-            <div>Rail / Air / Outstation Travel ₹</div>
+            <div className="fee-row-title">Rail / Air / Outstation Travel ₹</div>
             <div className="fee-row-detail">Outstation inspection charges</div>
           </div>
           <input
@@ -254,7 +254,7 @@ export function FeeBill() {
 
         <div className="fee-row">
           <div className="fee-row-label">
-            <div>Incidental Charges ₹</div>
+            <div className="fee-row-title">Incidental Charges ₹</div>
             <div className="fee-row-detail">Postage, printing & administrative</div>
           </div>
           <input
@@ -267,7 +267,7 @@ export function FeeBill() {
 
         <div className="fee-row">
           <div className="fee-row-label">
-            <div>Photo & Documentation Charges</div>
+            <div className="fee-row-title">Photo & Documentation Charges</div>
             <div className="fee-row-detail flex gap-12 align-center mt-4">
               <span>
                 Photos:{' '}
@@ -306,7 +306,7 @@ export function FeeBill() {
 
         <div className="fee-row">
           <div className="fee-row-label">
-            <div>Haltage Charges ₹</div>
+            <div className="fee-row-title">Haltage Charges ₹</div>
             <div className="fee-row-detail">Overnight stay / halt if applicable</div>
           </div>
           <input

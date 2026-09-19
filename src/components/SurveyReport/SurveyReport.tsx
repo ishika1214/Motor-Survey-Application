@@ -58,6 +58,7 @@ const blankSR = (): SurveyRecord => ({
   loadCapacityKg: '',
   taxReceiptNo: '',
   taxPaidUpTo: '',
+  vehicleState: 'Driving',
   driverName: '',
   dlNo: '',
   dlIssueDate: '',
@@ -225,7 +226,8 @@ export function SurveyReport() {
       <SectionHeader title="1. Policy & Claim Reference" icon="🔖" />
       <div className="form-grid form-grid-3">
         <FormField label="Survey Ref No." val={f.refN} set={(v) => s('refN', v)} />
-        <FormField label="Date of Survey" val={f.date} set={(v) => s('date', v)} />
+        <FormField label="Report Date" val={f.date} set={(v) => s('date', v)} ph="DD-MM-YYYY" />
+        <FormField label="Date of Survey" val={f.surveyDate} set={(v) => s('surveyDate', v)} ph="DD-MM-YYYY" />
         <FormField
           label="Status"
           val={f.status}
@@ -295,13 +297,53 @@ export function SurveyReport() {
       {/* SECTION 4 */}
       <SectionHeader title="4. Driver Details" icon="🪪" />
       <div className="form-grid form-grid-3">
+        <FormField
+          label="Vehicle Condition at Loss"
+          val={f.vehicleState || (f.driverName === 'NA' ? 'Parked' : 'Driving')}
+          set={(v) => {
+            const state = v as 'Driving' | 'Parked';
+            if (state === 'Parked') {
+              setF((p) => ({
+                ...p,
+                vehicleState: 'Parked',
+                driverName: 'NA',
+                dlNo: 'NA',
+                dlIssueDate: 'NA',
+                dlValid: 'NA',
+                dlRenewUpTo: 'NA',
+                dlIssuingDTO: 'NA',
+                dlType: 'N/A',
+                badgeNo: 'NA',
+                dlEndorsement: 'NA',
+                dlCopy: 'N/A',
+              }));
+            } else {
+              setF((p) => ({
+                ...p,
+                vehicleState: 'Driving',
+                driverName: p.driverName === 'NA' ? '' : p.driverName,
+                dlNo: p.dlNo === 'NA' ? '' : p.dlNo,
+                dlIssueDate: p.dlIssueDate === 'NA' ? '' : p.dlIssueDate,
+                dlValid: p.dlValid === 'NA' ? '' : p.dlValid,
+                dlRenewUpTo: p.dlRenewUpTo === 'NA' ? '' : p.dlRenewUpTo,
+                dlIssuingDTO: p.dlIssuingDTO === 'NA' ? '' : p.dlIssuingDTO,
+                dlType: p.dlType === 'N/A' ? 'LMV' : p.dlType,
+                badgeNo: p.badgeNo === 'NA' ? '' : p.badgeNo,
+                dlEndorsement: p.dlEndorsement === 'NA' ? '' : p.dlEndorsement,
+                dlCopy: p.dlCopy === 'N/A' ? 'Yes – Xerox' : p.dlCopy,
+              }));
+            }
+          }}
+          opts={['Driving', 'Parked']}
+          yellow
+        />
         <FormField label="Driver Name" val={f.driverName} set={(v) => s('driverName', v)} />
         <FormField label="Motor Driving Licence No." val={f.dlNo} set={(v) => s('dlNo', v)} />
         <FormField label="Date of Issue of DL" val={f.dlIssueDate} set={(v) => s('dlIssueDate', v)} ph="DD-MM-YYYY" />
         <FormField label="Valid Up To" val={f.dlValid} set={(v) => s('dlValid', v)} ph="DD-MM-YYYY" />
         <FormField label="Valid Up To / Renew Up To" val={f.dlRenewUpTo} set={(v) => s('dlRenewUpTo', v)} ph="DD-MM-YYYY" />
         <FormField label="Issuing Authority (DTO)" val={f.dlIssuingDTO} set={(v) => s('dlIssuingDTO', v)} ph="e.g. DTO Jamshedpur" />
-        <FormField label="Type of Licence" val={f.dlType} set={(v) => s('dlType', v)} opts={['LMV', 'LMV & MCWG', 'HMV', 'HTV', 'Hazardous', 'Non Transport', 'N/A']} />
+        <FormField label="Type of Licence" val={f.dlType} set={(v) => s('dlType', v)} opts={['LMV', 'MCWG', 'HMV', 'HTV', 'Hazardous', 'Non Transport', 'N/A']} />
         <FormField label="Badge No." val={f.badgeNo} set={(v) => s('badgeNo', v)} />
         <FormField label="Endorsement on Licence (if any)" val={f.dlEndorsement} set={(v) => s('dlEndorsement', v)} span={3} />
       </div>
